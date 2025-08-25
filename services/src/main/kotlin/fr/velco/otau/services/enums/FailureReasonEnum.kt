@@ -1,0 +1,13 @@
+package fr.velco.otau.services.enums
+
+enum class FailureReasonEnum {
+    KEY1_INCOHERENCY,
+    KEY2_INCOHERENCY,
+    SIGNATURE_INCOHERENCY,
+    CRC_INCOHERENCY,
+    TOO_MANY_NACK,
+    UNKNOWN_MASK_DFU_READY_STATUS,
+    NEW_OTAU_BEFORE_END_OF_PREVIOUS,
+    CANCELED,
+    STALL_FOR_TOO_LONG,
+}
