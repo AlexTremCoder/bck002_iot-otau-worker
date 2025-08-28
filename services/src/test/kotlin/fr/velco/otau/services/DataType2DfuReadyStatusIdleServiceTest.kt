@@ -60,6 +60,8 @@ class DataType2DfuReadyStatusIdleServiceTest : KotlinMockitoHelper() {
         val productDto = getProductDto(idFirmware = 1)
         Mockito.`when`(firmwareCacheService.getFirmware(productDto.idFirmware ?: 0)).thenReturn(getFirmware())
         Mockito.`when`(productDao.getReferenceById(0)).thenReturn(getProduct(idFirmware = 1, batteryLevel = 75))
+        Mockito.`when`(otauTrackingService.isOtauSlotAvailable(anyMap())).thenReturn(true)
+        Mockito.`when`(dataTypeService.isBatteryLevelSufficient(any(Short::class.javaObjectType), anyMap())).thenReturn(true)
 
         //Act
         dataType2DfuPacketDataIdService.treat(productDto, payload)
@@ -69,6 +71,7 @@ class DataType2DfuReadyStatusIdleServiceTest : KotlinMockitoHelper() {
         Mockito.verify(dfuDataTopicService, Mockito.times(1)).sendStartOfTransmission(any(ProductDto::class.java), eq(65535), anyMap())
         Mockito.verify(dataTypeService, Mockito.times(1)).sendPacket(any(ProductDto::class.java), eq(1), anyMap(), eq(true))
         Mockito.verify(otauTrackingService, Mockito.times(1)).start(any(Product::class.java), anyMap())
+        Mockito.verify(otauTrackingService, Mockito.times(1)).isOtauSlotAvailable(anyMap())
     }
 
     @Test
@@ -81,8 +84,8 @@ class DataType2DfuReadyStatusIdleServiceTest : KotlinMockitoHelper() {
             0x00, //Process step IDLE
         )
         Mockito.`when`(productDao.getReferenceById(0)).thenReturn(getProduct(batteryLevel = 10))
-        val product = getProductDto()
-        Mockito.`when`(properties.minBatteryLvlOtau).thenReturn(50)
+        val product = getProductDto(batteryLevel = 10)
+        Mockito.`when`(dataTypeService.isBatteryLevelSufficient(any(Short::class.javaObjectType), anyMap())).thenReturn(false)
 
         //Act
         dataType2DfuPacketDataIdService.treat(product, payload)
@@ -90,6 +93,30 @@ class DataType2DfuReadyStatusIdleServiceTest : KotlinMockitoHelper() {
         //Assert
         Mockito.verify(dataTypeService, Mockito.times(1)).sendEndOfTransmissionIfNotEligibleToATargetVersion(any(ProductDto::class.java), anyMap())
         Mockito.verify(firmwareCacheService, Mockito.times(0)).getFirmware(anyLong())
+        Mockito.verify(dfuDataTopicService, Mockito.times(0)).sendStartOfTransmission(any(ProductDto::class.java), eq(65535), anyMap())
+        Mockito.verify(dataTypeService, Mockito.times(0)).sendPacket(any(ProductDto::class.java), eq(1), anyMap(), eq(true))
+        Mockito.verify(otauTrackingService, Mockito.times(0)).start(any(Product::class.java), anyMap())
+    }
+
+    @Test
+    fun `threat() IDLE #0 without slot should not send 'Start of Transmission'`() {
+        //Arrange
+        val payload = byteArrayOf(
+            0x02,
+            0x00,
+            0x00,
+            0x00,
+        )
+        val productDto = getProductDto(idFirmware = 1)
+        Mockito.`when`(firmwareCacheService.getFirmware(productDto.idFirmware ?: 0)).thenReturn(getFirmware())
+        Mockito.`when`(productDao.getReferenceById(0)).thenReturn(getProduct(idFirmware = 1, batteryLevel = 75))
+        Mockito.`when`(otauTrackingService.isOtauSlotAvailable(anyMap())).thenReturn(false)
+        Mockito.`when`(dataTypeService.isBatteryLevelSufficient(any(Short::class.javaObjectType), anyMap())).thenReturn(true)
+
+        //Act
+        dataType2DfuPacketDataIdService.treat(productDto, payload)
+
+        //Assert
         Mockito.verify(dfuDataTopicService, Mockito.times(0)).sendStartOfTransmission(any(ProductDto::class.java), eq(65535), anyMap())
         Mockito.verify(dataTypeService, Mockito.times(0)).sendPacket(any(ProductDto::class.java), eq(1), anyMap(), eq(true))
         Mockito.verify(otauTrackingService, Mockito.times(0)).start(any(Product::class.java), anyMap())

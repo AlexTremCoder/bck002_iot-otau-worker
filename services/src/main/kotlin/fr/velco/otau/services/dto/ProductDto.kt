@@ -7,6 +7,7 @@ class ProductDto(
     val aesKey: ByteArray,
     val serialNumber: String,
     val idFirmware: Long?,
+    val batteryLevel: Short?,
 ) {
     companion object {
         fun fromEntity(product: Product) = ProductDto(
@@ -14,6 +15,7 @@ class ProductDto(
             aesKey = product.aesKey ?: throw Exception("This product has no aesKey"),
             serialNumber = product.serialNumber,
             idFirmware = product.idNuotraxFirmwareAvailable,
+            batteryLevel = product.batteryLevel,
         )
     }
 }

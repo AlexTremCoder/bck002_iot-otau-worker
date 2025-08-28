@@ -56,6 +56,9 @@ class DataType2DfuPacketDataIdService(
 
             StepEnum.DFU_RX -> { //IoT in progress
                 if (this.dataTypeService.sendEndOfTransmissionIfNotEligibleToATargetVersion(productDto, logCtx)) return
+                if (!this.otauTrackingService.isOtauSlotAvailable(logCtx)) {
+                    return
+                }
                 val otauTracking = this.dataTypeService.getOtauTrackingOrSendEndOfTransmission(productDto, logCtx) ?: return
 
                 //Case of ACK/NACK #1
@@ -109,23 +112,21 @@ class DataType2DfuPacketDataIdService(
      */
     private fun startOtau(productDto: ProductDto, logCtx: MutableMap<String, String>) {
         log.debug("startOtau()", logCtx)
-
-        val product = productDao.getReferenceById(productDto.id)
         //Is the IoT Battery not too low?
-        val batteryLevel = product.batteryLevel
-
-        logCtx += mapOf("batteryLevel" to batteryLevel.toString())
-
-        if (batteryLevel == null || batteryLevel < properties.minBatteryLvlOtau) {
-            log.info("IoT battery level is too low", logCtx)
+        if (!this.dataTypeService.isBatteryLevelSufficient(productDto.batteryLevel, logCtx)) {
             return
         }
 
-        val firmware = this.firmwareCacheService.getFirmware(product.idNuotraxFirmwareAvailable ?: throw Exception("Product.idNuotraxFirmwareAvailable cannot be null here"))
+        if (!this.otauTrackingService.isOtauSlotAvailable(logCtx)) {
+            return
+        }
+
+        val firmware = this.firmwareCacheService.getFirmware(productDto.idFirmware ?: throw Exception("Product.idNuotraxFirmwareAvailable cannot be null here"))
 
         val packetToSend = 1
         logCtx += mapOf("totalPacketsToSend" to firmware.totalPackets.toString(), "packetToSend" to packetToSend.toString())
 
+        val product = productDao.getReferenceById(productDto.id)
         this.otauTrackingService.start(product, logCtx) //Insert a new record into otau_tracking table
         this.dfuDataTopicService.sendStartOfTransmission(productDto, packetCount = firmware.totalPackets, logCtx)
         this.dataTypeService.sendPacket(productDto, packetToSend, logCtx, logWithoutModulo = true)

@@ -15,11 +15,12 @@ open class DataSet {
         idNuotraxFirmwareAvailable = idFirmware,
     )
 
-    protected fun getProductDto(idFirmware: Long? = null) = ProductDto(
+    protected fun getProductDto(idFirmware: Long? = null, batteryLevel: Short? = 75) = ProductDto(
         id = 0,
         serialNumber = "N12345",
         aesKey = HexStringUtils.fromHexString("6960472942B621D29623EC7E06141556"),
         idFirmware = idFirmware,
+        batteryLevel = batteryLevel,
     )
 
     protected fun getFirmware() = FirmwareDto(
