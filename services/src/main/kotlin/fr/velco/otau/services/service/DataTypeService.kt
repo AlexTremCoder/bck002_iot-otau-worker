@@ -91,6 +91,19 @@ class DataTypeService(
         return false
     }
 
+    /**
+     * Check if the IoT battery level is sufficient for an OTAU.
+     * The battery level is added into the log context.
+     */
+    fun isBatteryLevelSufficient(batteryLevel: Short?, logCtx: MutableMap<String, String>): Boolean {
+        logCtx += mapOf("batteryLevel" to (batteryLevel?.toString() ?: "null"))
+        if (batteryLevel == null || batteryLevel < properties.minBatteryLvlOtau) {
+            log.info("IoT battery level is too low", logCtx)
+            return false
+        }
+        return true
+    }
+
     fun sendPacket(productDto: ProductDto, packetNumber: Int, logCtx: MutableMap<String, String>, logWithoutModulo: Boolean = false) {
         if (logWithoutModulo || ((packetNumber % properties.logModulo) == 0)) log.info("Send packet", logCtx)
 

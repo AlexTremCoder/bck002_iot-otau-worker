@@ -115,19 +115,12 @@ class OtauTrackingService(
     fun cleanupAndReturnNumberOfActiveOtau(): Int {
         log.debug("cleanupAndReturnNumberOfActiveOtau()")
 
-        var numberOfActive = 0
-        val obsoleteOtauTrackingList: MutableList<OtauTracking> = mutableListOf()
         val now = LocalDateTime.now()
         val activeDateLimit = now.minusMinutes(properties.activeDelayInMinutes)
         val obsoleteDateLimit = now.minusDays(properties.obsoleteDelayInDays)
 
-        //Scan otau_tracking and check last_update field
-        otauTrackingDao.findAll().forEach {
-            if (it.lastUpdate.isAfter(activeDateLimit)) numberOfActive++
-            if (it.lastUpdate.isBefore(obsoleteDateLimit)) {
-                obsoleteOtauTrackingList.add(it)
-            }
-        }
+        val numberOfActive = otauTrackingDao.countByLastUpdateAfter(activeDateLimit)
+        val obsoleteOtauTrackingList = otauTrackingDao.findByLastUpdateBefore(obsoleteDateLimit)
 
         log.debug("Number of active OTAU $numberOfActive. Number of obsolete OTAU ${obsoleteOtauTrackingList.size}")
 
@@ -139,5 +132,19 @@ class OtauTrackingService(
         }
 
         return numberOfActive
+    }
+
+    /**
+     * Check if a slot is available to start a new OTAU.
+     * The number of active OTAU is added into the log context.
+     */
+    fun isOtauSlotAvailable(logCtx: MutableMap<String, String>): Boolean {
+        val numberOfActiveOtau = this.cleanupAndReturnNumberOfActiveOtau()
+        logCtx += mapOf("numberOfActiveOtau" to numberOfActiveOtau.toString())
+        val slotAvailable = numberOfActiveOtau < properties.maxSimultaneousOtau
+        if (!slotAvailable) {
+            log.info("Max active OTAU reached", logCtx)
+        }
+        return slotAvailable
     }
 }

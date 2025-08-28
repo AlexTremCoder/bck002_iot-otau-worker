@@ -56,6 +56,9 @@ class DataType2DfuPacketDataIdService(
 
             StepEnum.DFU_RX -> { //IoT in progress
                 if (this.dataTypeService.sendEndOfTransmissionIfNotEligibleToATargetVersion(productDto, logCtx)) return
+                if (!this.otauTrackingService.isOtauSlotAvailable(logCtx)) {
+                    return
+                }
                 val otauTracking = this.dataTypeService.getOtauTrackingOrSendEndOfTransmission(productDto, logCtx) ?: return
 
                 //Case of ACK/NACK #1
@@ -114,10 +117,11 @@ class DataType2DfuPacketDataIdService(
         //Is the IoT Battery not too low?
         val batteryLevel = product.batteryLevel
 
-        logCtx += mapOf("batteryLevel" to batteryLevel.toString())
+        if (!this.dataTypeService.isBatteryLevelSufficient(batteryLevel, logCtx)) {
+            return
+        }
 
-        if (batteryLevel == null || batteryLevel < properties.minBatteryLvlOtau) {
-            log.info("IoT battery level is too low", logCtx)
+        if (!this.otauTrackingService.isOtauSlotAvailable(logCtx)) {
             return
         }
 

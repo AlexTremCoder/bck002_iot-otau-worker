@@ -1,13 +1,11 @@
 package fr.velco.otau.services.service
 
 import fr.velco.back.framework.logging.VelcoLogger
-import fr.velco.otau.services.config.Properties
 import fr.velco.otau.services.service.cache.ProductCacheService
 import org.springframework.stereotype.Service
 
 @Service
 class TriggerService(
-    private val properties: Properties,
     private val productCacheService: ProductCacheService,
     private val otauTrackingService: OtauTrackingService,
     private val dfuDataTopicService: DfuDataTopicService,
@@ -23,13 +21,9 @@ class TriggerService(
 
         val productDto = productCacheService.getProduct(serialNumber)
         if (productDto.idFirmware != null) { //is OTAU scheduled?
-            val numberOfActiveOtau = otauTrackingService.cleanupAndReturnNumberOfActiveOtau()
-            logCtx += mapOf("numberOfActiveOtau" to numberOfActiveOtau.toString())
-            if (numberOfActiveOtau < properties.maxSimultaneousOtau) { //slot available?
+            if (otauTrackingService.isOtauSlotAvailable(logCtx)) {
                 log.info("Max active OTAU not reached. Try to launch a new one", logCtx)
                 dfuDataTopicService.sendAskNuotraxVersion(productDto, logCtx)
-            } else {
-                log.info("Max active OTAU reached", logCtx)
             }
         }
     }
