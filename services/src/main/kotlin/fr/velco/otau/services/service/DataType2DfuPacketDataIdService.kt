@@ -58,6 +58,12 @@ class DataType2DfuPacketDataIdService(
                 if (this.dataTypeService.sendEndOfTransmissionIfNotEligibleToATargetVersion(productDto, logCtx)) return
                 val otauTracking = this.dataTypeService.getOtauTrackingOrSendEndOfTransmission(productDto, logCtx) ?: return
 
+                //If the OTAU is obsolete (stall for too long), we remove it from otau_tracking
+                //If no slot available, we abort this inactive OTAU to avoid too many OTAU in progress
+                if (!this.otauTrackingService.isOtauActive(otauTracking)) {
+                    if (!this.otauTrackingService.isOtauSlotAvailableAfterCleanUp(logCtx)) return
+                }
+
                 //Case of ACK/NACK #1
                 //After sending first packet, otau_tracking.last_packet_acked is still NULL in database
                 val otauTrackingLastPacketAcked = otauTracking.lastPacketAcked ?: 0
@@ -126,8 +132,9 @@ class DataType2DfuPacketDataIdService(
         val packetToSend = 1
         logCtx += mapOf("totalPacketsToSend" to firmware.totalPackets.toString(), "packetToSend" to packetToSend.toString())
 
-        this.otauTrackingService.start(product, logCtx) //Insert a new record into otau_tracking table
-        this.dfuDataTopicService.sendStartOfTransmission(productDto, packetCount = firmware.totalPackets, logCtx)
-        this.dataTypeService.sendPacket(productDto, packetToSend, logCtx, logWithoutModulo = true)
+        if (this.otauTrackingService.start(product, logCtx) != null) { //Insert a new record into otau_tracking table
+            this.dfuDataTopicService.sendStartOfTransmission(productDto, packetCount = firmware.totalPackets, logCtx)
+            this.dataTypeService.sendPacket(productDto, packetToSend, logCtx, logWithoutModulo = true)
+        }
     }
 }

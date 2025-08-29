@@ -1,6 +1,7 @@
 package fr.velco.otau.services
 
 import fr.velco.otau.persistences.velco.dao.ProductDao
+import fr.velco.otau.persistences.velco.table.OtauTracking
 import fr.velco.otau.services.config.Properties
 import fr.velco.otau.services.dto.ProductDto
 import fr.velco.otau.services.service.*
@@ -48,6 +49,7 @@ class DataType2DfuReadyStatusDfuRxServiceTest : KotlinMockitoHelper() {
         )
         val productDto = getProductDto()
         Mockito.`when`(dataTypeService.getOtauTrackingOrSendEndOfTransmission(any(ProductDto::class.java), anyMap())).thenReturn(getOtauTracking())
+        Mockito.`when`(otauTrackingService.isOtauActive(any(OtauTracking::class.java))).thenReturn(true)
 
         //Act
         dataType2DfuPacketDataIdService.treat(productDto, payload)
@@ -70,6 +72,7 @@ class DataType2DfuReadyStatusDfuRxServiceTest : KotlinMockitoHelper() {
         val productDto = getProductDto()
         Mockito.`when`(dataTypeService.getOtauTrackingOrSendEndOfTransmission(any(ProductDto::class.java), anyMap())).thenReturn(getOtauTracking())
         Mockito.`when`(dataTypeService.isLastPacket(any(ProductDto::class.java), eq(2), anyMap())).thenReturn(false)
+        Mockito.`when`(otauTrackingService.isOtauActive(any(OtauTracking::class.java))).thenReturn(true)
 
         //Act
         dataType2DfuPacketDataIdService.treat(productDto, payload)
@@ -93,6 +96,7 @@ class DataType2DfuReadyStatusDfuRxServiceTest : KotlinMockitoHelper() {
         val productDto = getProductDto()
         Mockito.`when`(dataTypeService.getOtauTrackingOrSendEndOfTransmission(any(ProductDto::class.java), anyMap())).thenReturn(getOtauTracking())
         Mockito.`when`(dataTypeService.isLastPacket(any(ProductDto::class.java), eq(3), anyMap())).thenReturn(false)
+        Mockito.`when`(otauTrackingService.isOtauActive(any(OtauTracking::class.java))).thenReturn(true)
 
         //Act
         dataType2DfuPacketDataIdService.treat(productDto, payload)
@@ -116,6 +120,7 @@ class DataType2DfuReadyStatusDfuRxServiceTest : KotlinMockitoHelper() {
         val productDto = getProductDto()
         Mockito.`when`(dataTypeService.getOtauTrackingOrSendEndOfTransmission(any(ProductDto::class.java), anyMap())).thenReturn(getOtauTracking())
         Mockito.`when`(dataTypeService.isLastPacket(any(ProductDto::class.java), eq(2), anyMap())).thenReturn(true)
+        Mockito.`when`(otauTrackingService.isOtauActive(any(OtauTracking::class.java))).thenReturn(true)
 
         //Act
         dataType2DfuPacketDataIdService.treat(productDto, payload)

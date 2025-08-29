@@ -80,7 +80,9 @@ class DataType0NuotraxVersionService(
         //First, we request the IoT to check his state
         //Either he is ready for a new OTAU: it will answer 2:DFU Packet Data ID/IDLE #0
         //Either he is already in OTAU mode: it will answer 2:DFU Packet Data ID/DFU_RX #n
-        this.dfuDataTopicService.sendAskForLastPacketId(productDto, logCtx)
+        if (this.otauTrackingService.isOtauSlotAvailableAfterCleanUp(logCtx)) {
+            this.dfuDataTopicService.sendAskForLastPacketId(productDto, logCtx)
+        }
     }
 
     fun parseVersion(payload: ByteArray): String {

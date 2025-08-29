@@ -135,6 +135,7 @@ class DataType0NuotraxVersionServiceTest : KotlinMockitoHelper() {
         `when`(firmwareCacheService.getFirmware(productDtoBefore.idFirmware ?: 0)).thenReturn(getFirmware())
         `when`(dataTypeService.isEligibleToATargetVersion(any(ProductDto::class.java), anyMap())).thenReturn(true)
         `when`(productDao.getReferenceById(0)).thenReturn(getProduct(idFirmware = 1))
+        `when`(otauTrackingService.isOtauSlotAvailableAfterCleanUp(anyMap())).thenReturn(true)
 
         //Act
         dataType0NuotraxVersionService.treat(productDtoBefore, payload)
