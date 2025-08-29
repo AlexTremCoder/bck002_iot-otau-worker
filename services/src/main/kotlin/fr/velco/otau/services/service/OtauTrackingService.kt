@@ -27,7 +27,7 @@ class OtauTrackingService(
 ) {
     private val log = VelcoLogger {}
 
-    fun start(product: Product, logCtx: MutableMap<String, String>) {
+    fun start(product: Product, logCtx: MutableMap<String, String>): OtauTracking? {
         log.debug("start()", logCtx)
 
         val otauTracking = this.otauTrackingDao.findFirstByIdProduct(product.id)
@@ -37,19 +37,23 @@ class OtauTrackingService(
         }
 
         val firmware = this.firmwareCacheService.getFirmware(product.idNuotraxFirmwareAvailable ?: throw Exception("Product.idNuotraxFirmwareAvailable cannot be null here"))
-        this.otauTrackingDao.save(
-            OtauTracking(
-                idProduct = product.id,
-                currentFirmwareVersion = product.nuotraxFirmwareVersion ?: "",
-                currentBootloaderVersion = product.bootloaderVersion ?: "",
-                targetFirmwareVersion = firmware.version,
-                durationInMinutes = 0,
-                totalPacketsToSend = firmware.totalPackets,
-                nackPacketCounterConsecutive = 0,
-                nackPacketCounterTotal = 0,
-                progressPercentage = 0,
+
+        if (this.isOtauSlotAvailable(logCtx)) {
+            return this.otauTrackingDao.save(
+                OtauTracking(
+                    idProduct = product.id,
+                    currentFirmwareVersion = product.nuotraxFirmwareVersion ?: "",
+                    currentBootloaderVersion = product.bootloaderVersion ?: "",
+                    targetFirmwareVersion = firmware.version,
+                    durationInMinutes = 0,
+                    totalPacketsToSend = firmware.totalPackets,
+                    nackPacketCounterConsecutive = 0,
+                    nackPacketCounterTotal = 0,
+                    progressPercentage = 0,
+                )
             )
-        )
+        }
+        return null
     }
 
     fun stop(productDto: ProductDto, logCtx: MutableMap<String, String>, failureReasonEnum: FailureReasonEnum? = null) {
@@ -115,12 +119,19 @@ class OtauTrackingService(
     fun cleanupAndReturnNumberOfActiveOtau(): Int {
         log.debug("cleanupAndReturnNumberOfActiveOtau()")
 
+        var numberOfActive = 0
+        val obsoleteOtauTrackingList: MutableList<OtauTracking> = mutableListOf()
         val now = LocalDateTime.now()
         val activeDateLimit = now.minusMinutes(properties.activeDelayInMinutes)
         val obsoleteDateLimit = now.minusDays(properties.obsoleteDelayInDays)
 
-        val numberOfActive = otauTrackingDao.countByLastUpdateAfter(activeDateLimit)
-        val obsoleteOtauTrackingList = otauTrackingDao.findByLastUpdateBefore(obsoleteDateLimit)
+        //Scan otau_tracking and check last_update field
+        otauTrackingDao.findAll().forEach {
+            if (it.lastUpdate.isAfter(activeDateLimit)) numberOfActive++
+            if (it.lastUpdate.isBefore(obsoleteDateLimit)) {
+                obsoleteOtauTrackingList.add(it)
+            }
+        }
 
         log.debug("Number of active OTAU $numberOfActive. Number of obsolete OTAU ${obsoleteOtauTrackingList.size}")
 
@@ -140,11 +151,14 @@ class OtauTrackingService(
      */
     fun isOtauSlotAvailable(logCtx: MutableMap<String, String>): Boolean {
         val numberOfActiveOtau = this.cleanupAndReturnNumberOfActiveOtau()
+
         logCtx += mapOf("numberOfActiveOtau" to numberOfActiveOtau.toString())
-        val slotAvailable = numberOfActiveOtau < properties.maxSimultaneousOtau
-        if (!slotAvailable) {
+        if (numberOfActiveOtau < properties.maxSimultaneousOtau) { //slot available?
+            log.info("Max active OTAU not reached. Try to launch a new one", logCtx)
+            return true
+        } else {
             log.info("Max active OTAU reached", logCtx)
+            return false
         }
-        return slotAvailable
     }
 }

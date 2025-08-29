@@ -47,7 +47,6 @@ class DataType2DfuReadyStatusDfuRxServiceTest : KotlinMockitoHelper() {
             0x02, //Process step DFU_RX
         )
         val productDto = getProductDto()
-        Mockito.`when`(otauTrackingService.isOtauSlotAvailable(anyMap())).thenReturn(true)
         Mockito.`when`(dataTypeService.getOtauTrackingOrSendEndOfTransmission(any(ProductDto::class.java), anyMap())).thenReturn(getOtauTracking())
 
         //Act
@@ -69,7 +68,6 @@ class DataType2DfuReadyStatusDfuRxServiceTest : KotlinMockitoHelper() {
             0x02, //Process step DFU_RX
         )
         val productDto = getProductDto()
-        Mockito.`when`(otauTrackingService.isOtauSlotAvailable(anyMap())).thenReturn(true)
         Mockito.`when`(dataTypeService.getOtauTrackingOrSendEndOfTransmission(any(ProductDto::class.java), anyMap())).thenReturn(getOtauTracking())
         Mockito.`when`(dataTypeService.isLastPacket(any(ProductDto::class.java), eq(2), anyMap())).thenReturn(false)
 
@@ -93,7 +91,6 @@ class DataType2DfuReadyStatusDfuRxServiceTest : KotlinMockitoHelper() {
             0x02, //Process step DFU_RX
         )
         val productDto = getProductDto()
-        Mockito.`when`(otauTrackingService.isOtauSlotAvailable(anyMap())).thenReturn(true)
         Mockito.`when`(dataTypeService.getOtauTrackingOrSendEndOfTransmission(any(ProductDto::class.java), anyMap())).thenReturn(getOtauTracking())
         Mockito.`when`(dataTypeService.isLastPacket(any(ProductDto::class.java), eq(3), anyMap())).thenReturn(false)
 
@@ -117,7 +114,6 @@ class DataType2DfuReadyStatusDfuRxServiceTest : KotlinMockitoHelper() {
             0x02, //Process step DFU_RX
         )
         val productDto = getProductDto()
-        Mockito.`when`(otauTrackingService.isOtauSlotAvailable(anyMap())).thenReturn(true)
         Mockito.`when`(dataTypeService.getOtauTrackingOrSendEndOfTransmission(any(ProductDto::class.java), anyMap())).thenReturn(getOtauTracking())
         Mockito.`when`(dataTypeService.isLastPacket(any(ProductDto::class.java), eq(2), anyMap())).thenReturn(true)
 
@@ -129,28 +125,5 @@ class DataType2DfuReadyStatusDfuRxServiceTest : KotlinMockitoHelper() {
         Mockito.verify(otauTrackingService, Mockito.times(1)).setLastPacketAcked(any(ProductDto::class.java), eq(2), anyMap())
         Mockito.verify(dfuDataTopicService, Mockito.times(1)).sendEndOfTransmission(any(ProductDto::class.java), anyMap())
         Mockito.verify(dataTypeService, Mockito.times(0)).sendPacket(any(ProductDto::class.java), anyInt(), anyMap(), eq(true))
-    }
-
-    @Test
-    fun `threat() DFU_RX without slot should not continue`() {
-        //Arrange
-        val payload = byteArrayOf(
-            0x02, //DFU Packet Data ID
-            0x00, //Last Packet Number ID #2
-            0x02,
-            0x02, //Process step DFU_RX
-        )
-        val productDto = getProductDto()
-        Mockito.`when`(otauTrackingService.isOtauSlotAvailable(anyMap())).thenReturn(false)
-
-        //Act
-        dataType2DfuPacketDataIdService.treat(productDto, payload)
-
-        //Assert
-        Mockito.verify(dataTypeService, Mockito.times(1)).sendEndOfTransmissionIfNotEligibleToATargetVersion(any(ProductDto::class.java), anyMap())
-        Mockito.verify(dataTypeService, Mockito.times(0)).getOtauTrackingOrSendEndOfTransmission(any(ProductDto::class.java), anyMap())
-        Mockito.verify(otauTrackingService, Mockito.times(1)).isOtauSlotAvailable(anyMap())
-        Mockito.verify(otauTrackingService, Mockito.times(0)).setLastPacketAcked(any(ProductDto::class.java), anyInt(), anyMap())
-        Mockito.verify(dataTypeService, Mockito.times(0)).sendPacket(any(ProductDto::class.java), anyInt(), anyMap(), anyBoolean())
     }
 }

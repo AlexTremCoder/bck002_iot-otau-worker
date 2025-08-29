@@ -8,6 +8,7 @@ import fr.velco.otau.services.dto.ProductDto
 import fr.velco.otau.services.enums.StepEnum
 import fr.velco.otau.services.service.cache.FirmwareCacheService
 import org.springframework.stereotype.Service
+import java.time.LocalDateTime
 
 /**
  * Handle Dfu Status>DFU Packet Data ID
@@ -56,10 +57,13 @@ class DataType2DfuPacketDataIdService(
 
             StepEnum.DFU_RX -> { //IoT in progress
                 if (this.dataTypeService.sendEndOfTransmissionIfNotEligibleToATargetVersion(productDto, logCtx)) return
-                if (!this.otauTrackingService.isOtauSlotAvailable(logCtx)) {
+                val otauTracking = this.dataTypeService.getOtauTrackingOrSendEndOfTransmission(productDto, logCtx) ?: return
+
+                // Check if the already existing record in otauTracking is ACTIVE, if not, check if a slot is available before continuing
+                val activeDateLimit = LocalDateTime.now().minusMinutes(properties.activeDelayInMinutes)
+                if (otauTracking.lastUpdate.isBefore(activeDateLimit) && !this.otauTrackingService.isOtauSlotAvailable(logCtx)) {
                     return
                 }
-                val otauTracking = this.dataTypeService.getOtauTrackingOrSendEndOfTransmission(productDto, logCtx) ?: return
 
                 //Case of ACK/NACK #1
                 //After sending first packet, otau_tracking.last_packet_acked is still NULL in database
@@ -117,13 +121,9 @@ class DataType2DfuPacketDataIdService(
         //Is the IoT Battery not too low?
         val batteryLevel = product.batteryLevel
 
-        if (!this.dataTypeService.isBatteryLevelSufficient(batteryLevel, logCtx)) {
-            return
-        }
+        if (!this.dataTypeService.isBatteryLevelSufficient(batteryLevel, logCtx)) return
 
-        if (!this.otauTrackingService.isOtauSlotAvailable(logCtx)) {
-            return
-        }
+        if (!this.otauTrackingService.isOtauSlotAvailable(logCtx)) return
 
         val firmware = this.firmwareCacheService.getFirmware(product.idNuotraxFirmwareAvailable ?: throw Exception("Product.idNuotraxFirmwareAvailable cannot be null here"))
 

@@ -21,9 +21,8 @@ class TriggerService(
 
         val productDto = productCacheService.getProduct(serialNumber)
         if (productDto.idFirmware != null) { //is OTAU scheduled?
-            if (otauTrackingService.isOtauSlotAvailable(logCtx)) {
-                log.info("Max active OTAU not reached. Try to launch a new one", logCtx)
-                dfuDataTopicService.sendAskNuotraxVersion(productDto, logCtx)
+            if (otauTrackingService.isOtauSlotAvailable(logCtx)) {            
+            	dfuDataTopicService.sendAskNuotraxVersion(productDto, logCtx)
             }
         }
     }

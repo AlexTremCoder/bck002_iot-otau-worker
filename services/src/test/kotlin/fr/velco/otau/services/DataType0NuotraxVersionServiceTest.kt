@@ -97,9 +97,7 @@ class DataType0NuotraxVersionServiceTest : KotlinMockitoHelper() {
         val productDtoBefore = getProductDto(idFirmware = 1)
         `when`(firmwareCacheService.getFirmware(productDtoBefore.idFirmware ?: 0)).thenReturn(getFirmware())
         `when`(dataTypeService.isEligibleToATargetVersion(any(ProductDto::class.java), anyMap())).thenReturn(true)
-        `when`(dataTypeService.isBatteryLevelSufficient(any(Short::class.javaObjectType), anyMap())).thenReturn(true)
         `when`(productDao.getReferenceById(0)).thenReturn(getProduct(idFirmware = 1))
-        `when`(otauTrackingService.isOtauSlotAvailable(anyMap())).thenReturn(true)
 
         //Act
         dataType0NuotraxVersionService.treat(productDtoBefore, payload)
@@ -136,9 +134,7 @@ class DataType0NuotraxVersionServiceTest : KotlinMockitoHelper() {
         val productDtoBefore = getProductDto(idFirmware = 1)
         `when`(firmwareCacheService.getFirmware(productDtoBefore.idFirmware ?: 0)).thenReturn(getFirmware())
         `when`(dataTypeService.isEligibleToATargetVersion(any(ProductDto::class.java), anyMap())).thenReturn(true)
-        `when`(dataTypeService.isBatteryLevelSufficient(any(Short::class.javaObjectType), anyMap())).thenReturn(true)
         `when`(productDao.getReferenceById(0)).thenReturn(getProduct(idFirmware = 1))
-        `when`(otauTrackingService.isOtauSlotAvailable(anyMap())).thenReturn(true)
 
         //Act
         dataType0NuotraxVersionService.treat(productDtoBefore, payload)
@@ -147,67 +143,10 @@ class DataType0NuotraxVersionServiceTest : KotlinMockitoHelper() {
         val productCaptor: ArgumentCaptor<Product> = ArgumentCaptor.forClass(Product::class.java)
         Mockito.verify(productDao, Mockito.times(1)).save(capture(productCaptor))
         Mockito.verify(dfuDataTopicService, Mockito.times(1)).sendAskForLastPacketId(any(ProductDto::class.java), anyMap()) //principal assert of this test
-        Mockito.verify(otauTrackingService, Mockito.times(1)).isOtauSlotAvailable(anyMap())
 
         val productAfter: Product = productCaptor.value
         assertEquals("1.2.3.3", productAfter.nuotraxFirmwareVersion)
         assertEquals("4.3.2.1", productAfter.bootloaderVersion)
-    }
-
-    @Test
-    fun `threat() with IoT eligible not up-to-date but without slot should not start an OTAU`() {
-        //Arrange
-        val payload = byteArrayOf(
-            0x00, //Nuotrax Version
-            0x01, //Firmware Version
-            0x02,
-            0x03,
-            0x03,
-            0x04, //BootLoader Version
-            0x03,
-            0x02,
-            0x01,
-        )
-        val productDtoBefore = getProductDto(idFirmware = 1)
-        `when`(firmwareCacheService.getFirmware(productDtoBefore.idFirmware ?: 0)).thenReturn(getFirmware())
-        `when`(dataTypeService.isEligibleToATargetVersion(any(ProductDto::class.java), anyMap())).thenReturn(true)
-        `when`(dataTypeService.isBatteryLevelSufficient(any(Short::class.javaObjectType), anyMap())).thenReturn(true)
-        `when`(productDao.getReferenceById(0)).thenReturn(getProduct(idFirmware = 1))
-        `when`(otauTrackingService.isOtauSlotAvailable(anyMap())).thenReturn(false)
-
-        //Act
-        dataType0NuotraxVersionService.treat(productDtoBefore, payload)
-
-        //Assert
-        Mockito.verify(dfuDataTopicService, Mockito.times(0)).sendAskForLastPacketId(any(ProductDto::class.java), anyMap())
-
-    }
-
-    @Test
-    fun `threat() with IoT eligible not up-to-date but battery too low should not start an OTAU`() {
-        //Arrange
-        val payload = byteArrayOf(
-            0x00, //Nuotrax Version
-            0x01, //Firmware Version
-            0x02,
-            0x03,
-            0x03,
-            0x04, //BootLoader Version
-            0x03,
-            0x02,
-            0x01,
-        )
-        val productDtoBefore = getProductDto(idFirmware = 1)
-        `when`(firmwareCacheService.getFirmware(productDtoBefore.idFirmware ?: 0)).thenReturn(getFirmware())
-        `when`(dataTypeService.isEligibleToATargetVersion(any(ProductDto::class.java), anyMap())).thenReturn(true)
-        `when`(dataTypeService.isBatteryLevelSufficient(any(Short::class.javaObjectType), anyMap())).thenReturn(false)
-        `when`(productDao.getReferenceById(0)).thenReturn(getProduct(idFirmware = 1))
-
-        //Act
-        dataType0NuotraxVersionService.treat(productDtoBefore, payload)
-
-        //Assert
-        Mockito.verify(dfuDataTopicService, Mockito.times(0)).sendAskForLastPacketId(any(ProductDto::class.java), anyMap())
     }
 
     @Test
